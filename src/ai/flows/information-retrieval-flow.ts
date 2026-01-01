@@ -5,7 +5,7 @@
  * - simulateIrMethod - Fungsi utama yang menangani proses simulasi.
  */
 
-import { ai } from '@/ai/genkit';
+
 import { IrInputSchema, IrOutputSchema, type IrInput, type IrOutput } from './ir-schemas';
 
 // ============================================================================
@@ -18,8 +18,61 @@ import { IrInputSchema, IrOutputSchema, type IrInput, type IrOutput } from './ir
  * @param text Teks yang akan ditokenisasi.
  * @returns Array string berisi token.
  */
-const tokenize = (text: string): string[] =>
-    text.toLowerCase().match(/\b\w+\b/g) || [];
+// Basic Indonesian Stemmer (Sastrawi-like Lite)
+const stem = (word: string): string => {
+    let res = word;
+    if (res.length <= 3) return res;
+    // Simple prefix removal
+    if (res.startsWith('meng')) res = res.slice(4);
+    else if (res.startsWith('men')) res = res.slice(3);
+    else if (res.startsWith('mem')) res = res.slice(3);
+    else if (res.startsWith('me')) res = res.slice(2);
+    else if (res.startsWith('peng')) res = res.slice(4);
+    else if (res.startsWith('pen')) res = res.slice(3);
+    else if (res.startsWith('pem')) res = res.slice(3);
+    else if (res.startsWith('di')) res = res.slice(2);
+    else if (res.startsWith('ter')) res = res.slice(3);
+    else if (res.startsWith('ber')) res = res.slice(3);
+
+    // Simple suffix removal
+    if (res.endsWith('kan') && res.length > 5) res = res.slice(0, -3);
+    else if (res.endsWith('an') && res.length > 4) res = res.slice(0, -2);
+    else if (res.endsWith('i') && res.length > 4) res = res.slice(0, -1);
+
+    return res;
+};
+
+const STOPWORDS = new Set([
+    // Indonesian
+    'dan', 'atau', 'tetapi', 'tapi', 'namun', 'sedangkan', 'melainkan', 'padahal', 'jika', 'bila',
+    'kalau', 'supaya', 'agar', 'untuk', 'guna', 'bagi', 'demi', 'karena', 'sebab', 'maka',
+    'sehingga', 'sampai', 'hingga', 'yang', 'ini', 'itu', 'pada', 'di', 'ke', 'dari',
+    'oleh', 'dengan', 'secara', 'menurut', 'antara', 'adalah', 'ialah', 'merupakan', 'yaitu',
+    'yakni', 'seperti', 'bagai', 'bagaikan', 'laksana', 'bak', 'tentang', 'mengenai', 'terhadap',
+    'akan', 'sedang', 'telah', 'sudah', 'belum', 'bisa', 'dapat', 'harus', 'wajib', 'mesti',
+    'boleh', 'mungkin', 'barangkali', 'pasti', 'tentu', 'tidak', 'bukan', 'jangan', 'sekali',
+    'sangat', 'amat', 'paling', 'lebih', 'kurang', 'cukup', 'terlalu', 'hanya', 'cuma', 'saja',
+    'lagi', 'pun', 'juga', 'kan', 'lah', 'kah', 'tah', 'ada', 'tiada', 'saya', 'aku',
+    'kita', 'kami', 'anda', 'kamu', 'dia', 'mereka', 'apa', 'siapa', 'kapan', 'dimana',
+    'mengapa', 'bagaimana', 'berapa',
+    // English
+    'and', 'or', 'but', 'if', 'then', 'else', 'when', 'at', 'from', 'by', 'for', 'with',
+    'about', 'against', 'between', 'into', 'through', 'during', 'before', 'after', 'above',
+    'below', 'to', 'of', 'in', 'on', 'off', 'over', 'under', 'again', 'further', 'then',
+    'once', 'here', 'there', 'where', 'why', 'how', 'all', 'any', 'both', 'each', 'few',
+    'more', 'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only', 'own', 'same',
+    'so', 'than', 'too', 'very', 'can', 'will', 'just', 'should', 'now', 'is', 'are', 'was',
+    'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'a', 'an', 'the'
+]);
+
+/**
+ * Memecah teks menjadi token, menghapus stopword, dan melakukan stemming.
+ */
+const tokenize = (text: string): string[] => {
+    return (text.toLowerCase().match(/\b\w+\b/g) || [])
+        .filter(token => !STOPWORDS.has(token) && token.length > 1) // Keep short words > 1 char
+        .map(stem);
+};
 
 /**
  * Menghitung kemiripan Cosine antara dua vektor.
@@ -48,6 +101,12 @@ const hitungCosineSimilarity = (vecA: number[], vecB: number[]) => {
  */
 const hitungEuclideanDistance = (vecA: number[], vecB: number[]) =>
     Math.sqrt(vecA.reduce((sum, val, i) => sum + (val - vecB[i]) ** 2, 0));
+
+// ... (Existing TF-IDF and Cosine functions remain unchanged)
+
+
+
+
 
 /**
  * Mengurai string dokumen input menjadi objek metadata.
@@ -210,11 +269,23 @@ const jalankanPencarianBoolean = (kueri: string, dokumen: { content: string, nam
 
         function uraiEkspresi(): any {
             let kiri = uraiIstilah();
-            while (kursor < teksKueri.length && (teksKueri.substring(kursor).startsWith(' AND ') || teksKueri.substring(kursor).startsWith(' OR '))) {
-                const op = teksKueri.substring(kursor).startsWith(' AND ') ? 'AND' : 'OR';
-                kursor += op.length + 2;
-                const kanan = uraiIstilah();
-                kiri = { op, left: kiri, right: kanan };
+            while (kursor < teksKueri.length) {
+                if (teksKueri.substring(kursor).startsWith(' AND ')) {
+                    kursor += 5;
+                    const kanan = uraiIstilah();
+                    kiri = { op: 'AND', left: kiri, right: kanan };
+                } else if (teksKueri.substring(kursor).startsWith(' OR ')) {
+                    kursor += 4;
+                    const kanan = uraiIstilah();
+                    kiri = { op: 'OR', left: kiri, right: kanan };
+                } else if (teksKueri.substring(kursor).startsWith(' NOT ')) {
+                    // Implicit AND for "A NOT B" -> "A AND NOT B"
+                    kursor += 1; // Konsumsi spasi saja, biarkan 'NOT' ditangani uraiIstilah
+                    const kanan = uraiIstilah();
+                    kiri = { op: 'AND', left: kiri, right: kanan };
+                } else {
+                    break;
+                }
             }
             return kiri;
         }
@@ -323,6 +394,108 @@ const jalankanPencarianBm25 = (kueri: string, dokumen: { content: string, name: 
 /**
  * Melakukan pengelompokan dokumen (Clustering) menggunakan algoritma K-Means sederhana.
  */
+/**
+ * Melakukan pengelompokan dokumen (Clustering) menggunakan algoritma K-Means dengan TF-IDF dan Cosine Similarity.
+ */
+// K-Means implementation with explicit return type
+interface KMeansResult {
+    clusters: { [key: string]: { docId: number, name: string, content: string }[] };
+    numClusters: number;
+    inertia: number;
+}
+
+const runKMeans = (k: number, vektorDokumen: number[][], dokumen: { content: string, name: string }[], semuaToken: string[]): KMeansResult => {
+    // 3. Inisialisasi Centroid (K-Means++)
+    let centroids: number[][] = [];
+    const firstIdx = Math.floor(Math.random() * vektorDokumen.length);
+    centroids.push([...vektorDokumen[firstIdx]]);
+
+    while (centroids.length < k) {
+        const distances = vektorDokumen.map(vec => {
+            let minDistanceSq = Infinity;
+            for (const centroid of centroids) {
+                const dist = 1 - hitungCosineSimilarity(vec, centroid);
+                if (dist < minDistanceSq) minDistanceSq = dist * dist;
+            }
+            return minDistanceSq;
+        });
+
+        const totalDistance = distances.reduce((a, b) => a + b, 0);
+        let r = Math.random() * totalDistance;
+        let selectedIdx = -1;
+        for (let i = 0; i < distances.length; i++) {
+            r -= distances[i];
+            if (r <= 0) {
+                selectedIdx = i;
+                break;
+            }
+        }
+        if (selectedIdx === -1) selectedIdx = distances.length - 1;
+        centroids.push([...vektorDokumen[selectedIdx]]);
+    }
+
+    let assignments = new Array(dokumen.length).fill(0);
+    let berubah = true;
+    const MAX_ITER = 20;
+
+    for (let iter = 0; iter < MAX_ITER && berubah; iter++) {
+        berubah = false;
+        vektorDokumen.forEach((vektor, idxDok) => {
+            let maxSim = -1; // Cosine Sim ranges -1 to 1 (usually 0 to 1 for TF-IDF)
+            let penugasanBaru = 0;
+            centroids.forEach((centroid, idxCentroid) => {
+                const sim = hitungCosineSimilarity(vektor, centroid);
+                if (sim > maxSim) {
+                    maxSim = sim;
+                    penugasanBaru = idxCentroid;
+                }
+            });
+            if (assignments[idxDok] !== penugasanBaru) {
+                assignments[idxDok] = penugasanBaru;
+                berubah = true;
+            }
+        });
+
+        if (berubah) {
+            const centroidBaru = Array.from({ length: k }, () => new Array(semuaToken.length).fill(0));
+            const hitunganCluster = new Array(k).fill(0);
+            vektorDokumen.forEach((vektor, idxDok) => {
+                const idxCluster = assignments[idxDok];
+                vektor.forEach((val, i) => centroidBaru[idxCluster][i] += val);
+                hitunganCluster[idxCluster]++;
+            });
+            centroids = centroidBaru.map((vec, i) => {
+                if (hitunganCluster[i] > 0) return vec.map(val => val / hitunganCluster[i]);
+                return centroids[i];
+            });
+        }
+    }
+
+    // Calculate Inertia (Sum of squared distances/errors)
+    let inertia = 0;
+    vektorDokumen.forEach((vektor, idxDok) => {
+        const centroid = centroids[assignments[idxDok]];
+        const dist = 1 - hitungCosineSimilarity(vektor, centroid); // Cosine distance
+        inertia += dist * dist;
+    });
+
+    const clusters: { [key: string]: { docId: number, name: string, content: string }[] } = {};
+    assignments.forEach((idxCluster, idxDok) => {
+        if (!clusters[idxCluster]) clusters[idxCluster] = [];
+        clusters[idxCluster].push({
+            docId: idxDok + 1,
+            name: dokumen[idxDok].name,
+            content: dokumen[idxDok].content
+        });
+    });
+
+    return { clusters, numClusters: k, inertia };
+};
+
+/**
+ * Melakukan pengelompokan dokumen (Clustering) menggunakan algoritma K-Means dengan TF-IDF dan Cosine Similarity.
+ * Menggunakan "Multi-start" (n_init = 10) untuk hasil terbaik.
+ */
 const jalankanClustering = (strJumlahCluster: string, dokumen: { content: string, name: string }[]) => {
     const k = parseInt(strJumlahCluster, 10);
     if (isNaN(k) || k <= 0) {
@@ -334,123 +507,91 @@ const jalankanClustering = (strJumlahCluster: string, dokumen: { content: string
         return { error: "Jumlah dokumen harus lebih besar atau sama dengan jumlah cluster." };
     }
 
+    // 1. Tokenisasi dan Bangun Vokabulari (with Stemming & improved Stopwords)
     const daftarTokenDokumen = isiDokumen.map(doc => tokenize(doc));
     const semuaToken = [...new Set(daftarTokenDokumen.flat())];
 
-    const bangunVektor = (tokens: string[]) => {
-        const vektor = new Array(semuaToken.length).fill(0);
-        tokens.forEach(token => {
-            const index = semuaToken.indexOf(token);
-            if (index !== -1) vektor[index]++;
+    // 2. Hitung TF-IDF
+    const hitungTfidf = () => {
+        // Hitung IDF
+        const idf: { [key: string]: number } = {};
+        semuaToken.forEach(token => {
+            const docsWithToken = daftarTokenDokumen.filter(d => d.includes(token)).length;
+            idf[token] = Math.log(isiDokumen.length / (1 + docsWithToken));
         });
-        return vektor;
+
+        // Bangun Vektor TF-IDF untuk setiap dokumen
+        return daftarTokenDokumen.map(tokens => {
+            const vec = new Array(semuaToken.length).fill(0);
+            const tf: { [key: string]: number } = {};
+            tokens.forEach(t => tf[t] = (tf[t] || 0) + 1);
+
+            semuaToken.forEach((token, i) => {
+                // TF normalisasi
+                const valTf = (tf[token] || 0) / tokens.length;
+                vec[i] = valTf * idf[token];
+            });
+            return vec;
+        });
     };
 
-    const vektorDokumen = daftarTokenDokumen.map(bangunVektor);
+    const vektorDokumen = hitungTfidf();
 
-    // Inisialisasi Centroid (mengambil k dokumen pertama sebagai centroid awal)
-    let centroids = vektorDokumen.slice(0, k);
-    let assignments = new Array(isiDokumen.length).fill(0);
+    // 3. Multi-start K-Means
+    let bestResult: KMeansResult | null = null;
+    const N_INIT = 10; // Jalankan 10 kali
 
-    let berubah = true;
-    // Iterasi maksimum 20 kali untuk mencegah loop tak terbatas
-    for (let iter = 0; iter < 20 && berubah; iter++) {
-        berubah = false;
-
-        // Langkah 1: Penugasan (Assignment) ke centroid terdekat
-        vektorDokumen.forEach((vektor, idxDok) => {
-            let jarakMin = Infinity;
-            let penugasanBaru = 0;
-            centroids.forEach((centroid, idxCentroid) => {
-                const jarak = hitungEuclideanDistance(vektor, centroid);
-                if (jarak < jarakMin) {
-                    jarakMin = jarak;
-                    penugasanBaru = idxCentroid;
-                }
-            });
-            if (assignments[idxDok] !== penugasanBaru) {
-                assignments[idxDok] = penugasanBaru;
-                berubah = true;
-            }
-        });
-
-        // Langkah 2: Pembaruan (Update) posisi centroid
-        const centroidBaru = Array.from({ length: k }, () => new Array(semuaToken.length).fill(0));
-        const hitunganCluster = new Array(k).fill(0);
-
-        vektorDokumen.forEach((vektor, idxDok) => {
-            const idxCluster = assignments[idxDok];
-            vektor.forEach((val, i) => centroidBaru[idxCluster][i] += val);
-            hitunganCluster[idxCluster]++;
-        });
-
-        centroidBaru.forEach((centroid, i) => {
-            if (hitunganCluster[i] > 0) {
-                centroids[i] = centroid.map(val => val / hitunganCluster[i]);
-            }
-        });
+    for (let i = 0; i < N_INIT; i++) {
+        const result = runKMeans(k, vektorDokumen, dokumen, semuaToken);
+        if (!bestResult || result.inertia < bestResult.inertia) {
+            bestResult = result;
+        }
     }
 
-    // Format hasil output
-    const clusters: { [key: string]: { docId: number, name: string, content: string }[] } = {};
-    assignments.forEach((idxCluster, idxDok) => {
-        if (!clusters[idxCluster]) clusters[idxCluster] = [];
-        clusters[idxCluster].push({
-            docId: idxDok + 1,
-            name: dokumen[idxDok].name,
-            content: dokumen[idxDok].content
-        });
-    });
-
-    return { clusters, numClusters: k };
+    // Return the best result
+    const { clusters, numClusters } = bestResult!;
+    return { clusters, numClusters };
 };
 
+
 // ============================================================================
-// DEFINISI GENKIT FLOW
+// LOGIKA UTAMA (MAIN LOGIC)
 // ============================================================================
 
-const informationRetrievalFlow = ai.defineFlow(
-    {
-        name: 'informationRetrievalFlow',
-        inputSchema: IrInputSchema,
-        outputSchema: IrOutputSchema,
-    },
-    async (input) => {
-        const dokumen = ambilMetadataDokumen(input.documents);
+const jalankanSimulasi = async (input: IrInput): Promise<IrOutput> => {
+    const dokumen = ambilMetadataDokumen(input.documents);
 
-        // Validasi dasar
-        if (dokumen.length === 0 || dokumen.every(d => !d.content)) {
-            return { error: "Harap berikan setidaknya satu dokumen." };
-        }
-
-        switch (input.methodId) {
-            case 'regex':
-                return jalankanPencarianRegex(input.query, dokumen);
-            case 'vsm':
-                return jalankanPencarianVsm(input.query, dokumen);
-            case 'boolean':
-                return jalankanPencarianBoolean(input.query, dokumen);
-            case 'bm25':
-                return jalankanPencarianBm25(input.query, dokumen);
-            case 'clustering':
-                return jalankanClustering(input.query, dokumen);
-            case 'relevance':
-                // Umpan balik relevansi (Relevance Feedback) memerlukan beberapa langkah.
-                // Di sini kita kembalikan peringkat awal terlebih dahulu (menggunakan VSM).
-                return {
-                    ...jalankanPencarianVsm(input.query, dokumen),
-                    message: "Ini adalah peringkat awal. Di aplikasi nyata, Anda akan memilih dokumen yang relevan untuk menyaring hasil ini lebih lanjut.",
-                };
-            default:
-                return { error: `Metode tidak dikenal: ${input.methodId}` };
-        }
+    // Validasi dasar
+    if (dokumen.length === 0 || dokumen.every(d => !d.content)) {
+        return { error: "Harap berikan setidaknya satu dokumen." };
     }
-);
+
+    switch (input.methodId) {
+        case 'regex':
+            return jalankanPencarianRegex(input.query, dokumen);
+        case 'vsm':
+            return jalankanPencarianVsm(input.query, dokumen);
+        case 'boolean':
+            return jalankanPencarianBoolean(input.query, dokumen);
+        case 'bm25':
+            return jalankanPencarianBm25(input.query, dokumen);
+        case 'clustering':
+            return jalankanClustering(input.query, dokumen);
+        case 'relevance':
+            // Umpan balik relevansi (Relevance Feedback) memerlukan beberapa langkah.
+            // Di sini kita kembalikan peringkat awal terlebih dahulu (menggunakan VSM).
+            return {
+                ...jalankanPencarianVsm(input.query, dokumen),
+                message: "Ini adalah peringkat awal. Di aplikasi nyata, Anda akan memilih dokumen yang relevan untuk menyaring hasil ini lebih lanjut.",
+            };
+        default:
+            return { error: `Metode tidak dikenal: ${input.methodId}` };
+    }
+};
 
 /**
- * Fungsi wrapper untuk memanggil flow IR.
- * Digunakan untuk integrasi sisi server atau pemanggilan langsung.
+ * Fungsi utama untuk memanggil logika simulasi IR.
  */
 export async function simulateIrMethod(input: IrInput): Promise<IrOutput> {
-    return informationRetrievalFlow(input);
+    return jalankanSimulasi(input);
 }

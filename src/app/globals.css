@@ -14,7 +14,8 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    --primary: 243 75% 59%;     /* Indigo 600 */
+    --primary: 243 75% 59%;
+    /* Indigo 600 */
     --primary-foreground: 210 40% 98%;
 
     --secondary: 210 40% 96.1%;
@@ -23,7 +24,8 @@
     --muted: 210 40% 96.1%;
     --muted-foreground: 215 16% 47%;
 
-    --accent: 262 83% 58%;      /* Violet 600 */
+    --accent: 262 83% 58%;
+    /* Violet 600 */
     --accent-foreground: 210 40% 98%;
 
     --destructive: 0 84.2% 60.2%;
@@ -37,7 +39,8 @@
 
     --chart-1: 243 75% 59%;
     --chart-2: 262 83% 58%;
-    --chart-3: 199 89% 48%;     /* Cyan 600 */
+    --chart-3: 199 89% 48%;
+    /* Cyan 600 */
     --chart-4: 32 95% 44%;
     --chart-5: 0 84% 60%;
 
@@ -62,7 +65,8 @@
     --popover: 222 47% 6%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 243 75% 65%;     /* Indigo 500 equivalent */
+    --primary: 243 75% 65%;
+    /* Indigo 500 equivalent */
     --primary-foreground: 222 47% 6%;
 
     --secondary: 217 33% 17%;
@@ -71,7 +75,8 @@
     --muted: 217 33% 17%;
     --muted-foreground: 215 20% 65%;
 
-    --accent: 262 83% 65%;      /* Violet 500 equivalent */
+    --accent: 262 83% 65%;
+    /* Violet 500 equivalent */
     --accent-foreground: 210 40% 98%;
 
     --destructive: 0 62.8% 30.6%;
@@ -102,12 +107,14 @@
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary;
-    background-image: 
+    background-image:
+      radial-gradient(hsla(var(--primary) / 0.25) 1.5px, transparent 1.5px),
       radial-gradient(circle at 50% 0%, hsla(var(--primary) / 0.15) 0%, transparent 40%),
       radial-gradient(circle at 80% 10%, hsla(var(--accent) / 0.15) 0%, transparent 30%);
-    background-attachment: fixed;
+    background-size: 32px 32px, 100% 100%, 100% 100%;
   }
 }
 
@@ -115,7 +122,7 @@
   .glass {
     @apply bg-background/60 backdrop-blur-xl border border-white/10 shadow-lg supports-[backdrop-filter]:bg-background/60;
   }
-  
+
   .glass-card {
     @apply bg-card/50 backdrop-blur-md border border-border/50 shadow-sm hover:shadow-md transition-all duration-300;
   }
@@ -136,18 +143,28 @@
   }
 
   /* Add delays */
-  .delay-100 { animation-delay: 100ms; }
-  .delay-200 { animation-delay: 200ms; }
-  .delay-300 { animation-delay: 300ms; }
+  .delay-100 {
+    animation-delay: 100ms;
+  }
+
+  .delay-200 {
+    animation-delay: 200ms;
+  }
+
+  .delay-300 {
+    animation-delay: 300ms;
+  }
 }
 
 @keyframes fadeIn {
-  to { opacity: 1; }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideUp {
-  to { 
-    opacity: 1; 
+  to {
+    opacity: 1;
     transform: translateY(0);
   }
 }

@@ -4,7 +4,7 @@ import { SearchCode } from 'lucide-react';
 export function Header() {
   return (
     <header className="sticky top-0 z-50 hidden w-full border-b border-white/10 bg-slate-950/80 backdrop-blur-md supports-[backdrop-filter]:bg-slate-950/80 md:block transition-all duration-300">
-      <div className="container mx-auto flex h-16 items-center px-8">
+      <div className="container mx-auto flex h-16 items-center px-20">
         <div className="flex w-full justify-between items-center">
           <Link href="/" className="flex items-center gap-3 group">
             <div className="bg-primary/20 p-2 rounded-lg group-hover:bg-primary/30 transition-colors">

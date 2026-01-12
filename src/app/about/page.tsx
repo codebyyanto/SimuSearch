@@ -8,7 +8,7 @@ export default function AboutPage() {
             <section className="max-w-4xl mx-auto space-y-12 animate-in-fade">
                 <div className="text-center space-y-4">
                     <h1 className="text-4xl md:text-6xl font-bold font-headline tracking-tight text-gradient pb-2">
-                        Tentang Studio
+                        Tentang SimuSearch
                     </h1>
                     <p className="text-xl text-muted-foreground/80 max-w-2xl mx-auto">
                         Misi kami memudahkan pemahaman konsep Information Retrieval melalui visualisasi interaktif.

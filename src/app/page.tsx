@@ -19,11 +19,12 @@ export default function Home() {
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-primary/20 blur-[120px] rounded-full pointer-events-none -z-10" />
 
       <section className="text-center my-8 md:my-16 animate-in-fade">
-        <h1 className="text-5xl md:text-7xl font-bold font-headline leading-tight tracking-tight mb-6 animate-in-slide-up delay-200">
-          <span className="text-gradient">SimuSearch</span> <br />
+        <h1 className="text-4xl md:text-6xl font-bold font-headline leading-tight tracking-tight mb-6 animate-in-slide-up delay-200">
+          Visualisasikan <br />
+          <span className="text-gradient">Logika Pencarian</span> Anda
         </h1>
         <p className="mt-6 text-lg md:text-xl text-muted-foreground/80 max-w-2xl mx-auto leading-relaxed animate-in-slide-up delay-300">
-          Website interaktif untuk menjelajahi, mensimulasikan, dan memahami berbagai metode Information Retrieval dengan visualisasi real-time.
+          SimuSearch Studio membantu Anda memahami algoritma Information Retrieval melalui simulasi interaktif dan visualisasi data real-time.
         </p>
       </section>
 
@@ -40,7 +41,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="animate-in-slide-up delay-300">
+      <section id="metode" className="animate-in-slide-up delay-300 scroll-mt-24">
         <h2 className="text-2xl font-bold font-headline mb-8 text-center md:text-left flex items-center gap-2">
           <span className="w-1 h-8 bg-gradient-to-b from-primary to-accent rounded-full mb-1" />
           Pilih Metode Simulasi

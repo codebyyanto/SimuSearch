@@ -63,6 +63,28 @@ const HighlightedText = ({ text, highlights }: { text: string; highlights: numbe
   return <p className="font-mono text-sm whitespace-pre-wrap">{parts.map((p, i) => <React.Fragment key={i}>{p}</React.Fragment>)}</p>;
 };
 
+const ExpandableText = ({ text, maxLength = 150 }: { text: string; maxLength?: number }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  if (text.length <= maxLength) {
+    return <p className="whitespace-pre-wrap">{text}</p>;
+  }
+
+  return (
+    <div>
+      <p className="whitespace-pre-wrap">
+        {isExpanded ? text : `${text.substring(0, maxLength)}...`}
+      </p>
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="text-xs text-primary mt-1 hover:underline font-medium focus:outline-none"
+      >
+        {isExpanded ? "Sembunyikan" : "Lihat Selengkapnya"}
+      </button>
+    </div>
+  );
+};
+
 const ResultsDisplay = ({ methodId, results }: { methodId: string, results: IrOutput }) => {
   if (results.message && (!results.rankedDocuments && !results.matches && !results.matchedDocuments && !results.clusters)) {
     return <Alert><Terminal className="h-4 w-4" /><AlertTitle>Informasi</AlertTitle><AlertDescription>{results.message}</AlertDescription></Alert>;
@@ -117,7 +139,7 @@ const ResultsDisplay = ({ methodId, results }: { methodId: string, results: IrOu
                   </TableCell>
                   <TableCell className="font-mono align-top">{doc.score.toFixed(6)}</TableCell>
                   <TableCell className="align-top">
-                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{doc.content}</p>
+                    <ExpandableText text={doc.content} maxLength={100} />
                   </TableCell>
                 </TableRow>
               ))}
@@ -143,7 +165,7 @@ const ResultsDisplay = ({ methodId, results }: { methodId: string, results: IrOu
                 <Badge variant="default"><CheckCircle className="w-3 h-3 mr-1" />Cocok</Badge>
               </CardHeader>
               <CardContent className="p-4 pt-0">
-                <p className="text-sm text-muted-foreground">{doc.content}</p>
+                <ExpandableText text={doc.content} />
               </CardContent>
             </Card>
           ))
@@ -168,7 +190,7 @@ const ResultsDisplay = ({ methodId, results }: { methodId: string, results: IrOu
                 {docs.map((doc) => (
                   <div key={doc.docId} className="text-sm text-muted-foreground border-l-2 border-primary pl-3">
                     <p className="font-semibold text-foreground">{doc.name}</p>
-                    <p className="truncate">{doc.content}</p>
+                    <ExpandableText text={doc.content} />
                   </div>
                 ))}
               </CardContent>
